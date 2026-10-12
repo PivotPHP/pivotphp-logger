@@ -61,4 +61,32 @@ class JsonLogFormatterTest extends TestCase
         $this->assertArrayNotHasKey('context', $decoded);
         $this->assertArrayNotHasKey('extra', $decoded);
     }
+
+    public function testHandlesNonUtf8StringsWithoutThrowing(): void
+    {
+        $formatter = new JsonLogFormatter();
+
+        $invalidUtf8 = chr(193) . chr(175);
+        $latin1 = (string) iconv('UTF-8', 'ISO-8859-1', 'Ação');
+
+        $record = new LogRecord(
+            datetime: new DateTimeImmutable(),
+            channel: 'encoding',
+            level: Level::Info,
+            message: 'Mensagem com ISO: ' . $latin1,
+            context: [
+                'binary' => $invalidUtf8,
+                'latin1' => $latin1,
+            ],
+            extra: []
+        );
+
+        $output = $formatter->format($record);
+
+        $decoded = json_decode($output, true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('encoding', $decoded['channel']);
+        $this->assertArrayHasKey('binary', $decoded['context']);
+        $this->assertArrayHasKey('latin1', $decoded['context']);
+    }
 }

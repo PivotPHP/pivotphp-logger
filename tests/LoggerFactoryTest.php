@@ -312,4 +312,31 @@ class LoggerFactoryTest extends TestCase
         $this->assertSame(Level::Emergency, LoggerFactory::parseLevel('emergency'));
         $this->assertSame(Level::Debug, LoggerFactory::parseLevel('unknown_fallback'));
     }
+
+    public function testHandlesNonUtf8StringsWithoutThrowing(): void
+    {
+        $logger = LoggerFactory::create([
+            'default' => 'single',
+            'channels' => [
+                'single' => [
+                    'driver' => 'single',
+                    'path' => $this->tempLogFile,
+                ],
+            ],
+        ]);
+
+        $invalidUtf8 = chr(193) . chr(175);
+        $latin1 = (string) iconv('UTF-8', 'ISO-8859-1', 'Ação');
+
+        $logger->info('Log com ISO: ' . $latin1, [
+            'binary' => $invalidUtf8,
+            'latin1' => $latin1,
+            'nested' => ['binary_sub' => $invalidUtf8],
+        ]);
+
+        $this->assertFileExists($this->tempLogFile);
+        $content = (string) file_get_contents($this->tempLogFile);
+        $this->assertStringContainsString('Log com ISO:', $content);
+        $this->assertStringContainsString('INFO:', $content);
+    }
 }
