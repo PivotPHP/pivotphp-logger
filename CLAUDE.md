@@ -15,3 +15,4 @@
 - Corrigir estilo: `composer cs:fix`
 - Análise estática: `composer phpstan`
 - Suíte completa: `composer quality:check`
+
